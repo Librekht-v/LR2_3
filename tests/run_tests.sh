@@ -4,6 +4,9 @@ set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$root/build"
 g++ -std=c++17 -Wall -Wextra -Werror -pedantic "$root"/cpp/src/*.cpp -I"$root/cpp/include" -o "$root/build/lab2"
+export GOCACHE="${TMPDIR:-/private/tmp}/lab2-go-cache"
+mkdir -p "$GOCACHE"
+(cd "$root/go" && go test ./... && go build -o lab2-go .)
 
 expect() {
     local actual="$1"
