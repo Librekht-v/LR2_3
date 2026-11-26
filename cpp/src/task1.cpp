@@ -7,17 +7,15 @@
 
 using namespace std;
 
-namespace {
-int priority(char operation) {
+static int priority(char operation) {
     if (operation == '+' || operation == '-') return 1;
     if (operation == '*' || operation == '/') return 2;
     if (operation == '^') return 3;
     return -1;
 }
 
-bool isOperator(char symbol) {
+static bool isOperator(char symbol) {
     return symbol == '+' || symbol == '-' || symbol == '*' || symbol == '/' || symbol == '^';
-}
 }
 
 int task1() {

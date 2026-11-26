@@ -8,8 +8,7 @@
 
 using namespace std;
 
-namespace {
-StringSet makeSet(const string& line) {
+static StringSet makeSet(const string& line) {
     StringSet set;
     istringstream input(line);
     string value;
@@ -17,12 +16,11 @@ StringSet makeSet(const string& line) {
     return set;
 }
 
-void printValues(vector<string> values) {
+static void printValues(vector<string> values) {
     sort(values.begin(), values.end());
     cout << "{ ";
     for (const string& value : values) cout << value << ' ';
     cout << "}\n";
-}
 }
 
 int task3() {

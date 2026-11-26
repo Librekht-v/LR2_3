@@ -7,7 +7,6 @@
 
 using namespace std;
 
-namespace {
 class LruCache {
 public:
     explicit LruCache(size_t capacity) : capacity_(capacity) {}
@@ -46,8 +45,6 @@ private:
     list<int> order_;
     unordered_map<int, Entry> values_;
 };
-
-}
 
 int task7() {
     string type;

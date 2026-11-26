@@ -9,8 +9,7 @@
 
 using namespace std;
 
-namespace {
-bool readSetFile(const string& path, StringSet& set) {
+static bool readSetFile(const string& path, StringSet& set) {
     ifstream input(path);
     if (!input) return false;
     string value;
@@ -19,8 +18,8 @@ bool readSetFile(const string& path, StringSet& set) {
     }
     return true;
 }
-
-bool saveSetFile(const string& path, const StringSet& set) {
+// set_at
+static bool saveSetFile(const string& path, const StringSet& set) {
     ofstream output(path);
     if (!output) return false;
     vector<string> values = set.values();
@@ -28,8 +27,7 @@ bool saveSetFile(const string& path, const StringSet& set) {
     for (const string& value : values) output << value << '\n';
     return true;
 }
-}
-
+//setadd
 int task2(int argc, char* argv[]) {
     string path;
     string query;

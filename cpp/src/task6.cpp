@@ -12,8 +12,7 @@
 
 using namespace std;
 
-namespace {
-size_t positiveModulo(int key, size_t size) {
+static size_t positiveModulo(int key, size_t size) {
     const long long value = key;
     const long long result = value % static_cast<long long>(size);
     return static_cast<size_t>(result < 0 ? result + static_cast<long long>(size) : result);
@@ -188,7 +187,7 @@ private:
     vector<list<pair<int, string>>> buckets_;
 };
 
-string convertToRoman(int number) {
+static string convertToRoman(int number) {
     RomanHashTable table;
     const int values[] = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
     string result;
@@ -201,7 +200,7 @@ string convertToRoman(int number) {
     return result;
 }
 
-void benchmark(size_t count) {
+static void benchmark(size_t count) {
     const size_t tableSize = count * 3 + 1;
     LinearProbingSet linear(tableSize);
     DoubleHashingSet doubleHashing(tableSize);
@@ -223,7 +222,6 @@ void benchmark(size_t count) {
     cout << "Хеширование кукушки, вытеснений: " << cuckoo.displacements() << '\n';
     cout << "Хеширование кукушки, перестроений: " << cuckoo.rebuilds() << '\n';
     cout << "Время эксперимента, мкс: " << elapsed << '\n';
-}
 }
 
 int task6() {
