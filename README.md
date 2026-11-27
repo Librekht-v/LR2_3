@@ -73,3 +73,15 @@ GET 1
 вывод:
 2
 ```
+
+## Тестирование
+
+```bash
+bash tests/run_tests.sh
+```
+
+## Структура проекта
+
+- `cpp/include/`, `cpp/src/` — многофайловые реализации структур данных (`SinglyLinkedList`, `ArrayStructure`, `StackStructure`, `StringSet`, `BinarySearchTree`, `LinearProbingHashTable`, `DoubleHashingHashTable`, `LruCache`) и задач `task1`–`task7`.
+- `go/` — аналогичная реализация на Go и модульные тесты (`go/main_test.go`).
+- `tests/run_tests.sh` — сборка и проверка всех заданий.
