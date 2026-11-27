@@ -1,50 +1,10 @@
+#include "LruCache.hpp"
 #include "tasks.h"
 
 #include <iostream>
-#include <list>
 #include <string>
-#include <unordered_map>
 
 using namespace std;
-
-class LruCache {
-public:
-    explicit LruCache(size_t capacity) : capacity_(capacity) {}
-
-    void set(int key, int value) {
-        auto found = values_.find(key);
-        if (found != values_.end()) {
-            found->second.first = value;
-            touch(found);
-            return;
-        }
-        if (values_.size() == capacity_) {
-            values_.erase(order_.back());
-            order_.pop_back();
-        }
-        order_.push_front(key);
-        values_[key] = {value, order_.begin()};
-    }
-
-    int get(int key) {
-        auto found = values_.find(key);
-        if (found == values_.end()) return -1;
-        touch(found);
-        return found->second.first;
-    }
-
-private:
-    using Entry = pair<int, list<int>::iterator>;
-    void touch(unordered_map<int, Entry>::iterator found) {
-        order_.erase(found->second.second);
-        order_.push_front(found->first);
-        found->second.second = order_.begin();
-    }
-
-    size_t capacity_;
-    list<int> order_;
-    unordered_map<int, Entry> values_;
-};
 
 int task7() {
     string type;

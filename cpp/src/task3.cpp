@@ -1,12 +1,44 @@
-#include "structures.h"
+#include "StringSet.hpp"
 #include "tasks.h"
 
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
 using namespace std;
+
+StringSet setUnion(const StringSet& first, const StringSet& second) {
+    StringSet result;
+    for (const string& value : first.values()) {
+        result.add(value);
+    }
+    for (const string& value : second.values()) {
+        result.add(value);
+    }
+    return result;
+}
+
+StringSet setIntersection(const StringSet& first, const StringSet& second) {
+    StringSet result;
+    for (const string& value : first.values()) {
+        if (second.contains(value)) {
+            result.add(value);
+        }
+    }
+    return result;
+}
+
+StringSet setDifference(const StringSet& first, const StringSet& second) {
+    StringSet result;
+    for (const string& value : first.values()) {
+        if (!second.contains(value)) {
+            result.add(value);
+        }
+    }
+    return result;
+}
 
 static StringSet makeSet(const string& line) {
     StringSet set;
@@ -31,18 +63,9 @@ int task3() {
     const StringSet first = makeSet(firstLine);
     const StringSet second = makeSet(secondLine);
 
-    StringSet unionSet;
-    StringSet intersection;
-    StringSet difference;
-    for (const string& value : first.values()) {
-        unionSet.add(value);
-        if (second.contains(value)) {
-            intersection.add(value);
-        } else {
-            difference.add(value);
-        }
-    }
-    for (const string& value : second.values()) unionSet.add(value);
+    const StringSet unionSet = setUnion(first, second);
+    const StringSet intersection = setIntersection(first, second);
+    const StringSet difference = setDifference(first, second);
 
     cout << "Объединение: ";
     printValues(unionSet.values());

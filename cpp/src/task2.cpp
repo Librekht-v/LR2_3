@@ -1,6 +1,7 @@
-#include "structures.h"
+#include "StringSet.hpp"
 #include "tasks.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>

@@ -1,4 +1,4 @@
-#include "structures.h"
+#include "StackStructure.hpp"
 #include "tasks.h"
 
 #include <cctype>
@@ -26,7 +26,7 @@ int task1() {
         return 1;
     }
 
-    Stack<char> operations;
+    StackStructure operations;
     string result;
     bool expectsOperand = true;
 
@@ -57,7 +57,7 @@ int task1() {
                 cerr << "Ошибка: пропущен оператор перед скобкой.\n";
                 return 1;
             }
-            operations.push(symbol);
+            operations.push(string(1, symbol));
             ++index;
             continue;
         }
@@ -67,10 +67,9 @@ int task1() {
                 cerr << "Ошибка: пустые скобки или лишний оператор.\n";
                 return 1;
             }
-            while (!operations.empty() && operations.top() != '(') {
-                result += operations.top();
+            while (!operations.empty() && operations.top()[0] != '(') {
+                result += operations.pop();
                 result += ' ';
-                operations.pop();
             }
             if (operations.empty()) {
                 cerr << "Ошибка: закрывающая скобка без открывающей.\n";
@@ -86,14 +85,13 @@ int task1() {
                 cerr << "Ошибка: оператор стоит без левого операнда.\n";
                 return 1;
             }
-            while (!operations.empty() && operations.top() != '(' &&
-                   (priority(operations.top()) > priority(symbol) ||
-                    (priority(operations.top()) == priority(symbol) && symbol != '^'))) {
-                result += operations.top();
+            while (!operations.empty() && operations.top()[0] != '(' &&
+                   (priority(operations.top()[0]) > priority(symbol) ||
+                    (priority(operations.top()[0]) == priority(symbol) && symbol != '^'))) {
+                result += operations.pop();
                 result += ' ';
-                operations.pop();
             }
-            operations.push(symbol);
+            operations.push(string(1, symbol));
             expectsOperand = true;
             ++index;
             continue;
@@ -108,13 +106,12 @@ int task1() {
         return 1;
     }
     while (!operations.empty()) {
-        if (operations.top() == '(') {
+        if (operations.top()[0] == '(') {
             cerr << "Ошибка: открывающая скобка без закрывающей.\n";
             return 1;
         }
-        result += operations.top();
+        result += operations.pop();
         result += ' ';
-        operations.pop();
     }
 
     if (!result.empty()) result.pop_back();

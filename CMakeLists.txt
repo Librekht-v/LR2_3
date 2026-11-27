@@ -7,6 +7,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(lab2
     cpp/src/main.cpp
+    cpp/src/SinglyLinkedList.cpp
+    cpp/src/ArrayStructure.cpp
+    cpp/src/StackStructure.cpp
+    cpp/src/StringSet.cpp
+    cpp/src/BinarySearchTree.cpp
+    cpp/src/LinearProbingHashTable.cpp
+    cpp/src/DoubleHashingHashTable.cpp
+    cpp/src/LruCache.cpp
     cpp/src/task1.cpp
     cpp/src/task2.cpp
     cpp/src/task3.cpp

@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+type slotState int
+
+const (
+	slotEmpty slotState = iota
+	slotOccupied
+	slotDeleted
+)
+
+type hashEntry struct {
+	state slotState
+	key   int
+	value string
+}
+
 func modulo(value int, size int) int {
 	result := value % size
 	if result < 0 {
@@ -15,212 +29,275 @@ func modulo(value int, size int) int {
 	return result
 }
 
-type linearSet struct {
-	cells  []*int
-	probes int
-}
-
-func newLinearSet(size int) linearSet {
-	return linearSet{cells: make([]*int, size)}
-}
-
-func (s *linearSet) insert(key int) bool {
-	for attempt := 0; attempt < len(s.cells); attempt++ {
-		index := (modulo(key, len(s.cells)) + attempt) % len(s.cells)
-		s.probes++
-		if s.cells[index] == nil {
-			value := key
-			s.cells[index] = &value
-			return true
-		}
-		if *s.cells[index] == key {
+func nextPrime(minCap int) int {
+	isPrime := func(n int) bool {
+		if n < 2 {
 			return false
 		}
-	}
-	return false
-}
-
-type doubleHashSet struct {
-	cells  []*int
-	probes int
-}
-
-func newDoubleHashSet(size int) doubleHashSet {
-	return doubleHashSet{cells: make([]*int, size)}
-}
-
-func (s *doubleHashSet) insert(key int) bool {
-	first := modulo(key, len(s.cells))
-	step := 1 + modulo(key*37+17, len(s.cells)-1)
-	for attempt := 0; attempt < len(s.cells); attempt++ {
-		index := (first + attempt*step) % len(s.cells)
-		s.probes++
-		if s.cells[index] == nil {
-			value := key
-			s.cells[index] = &value
-			return true
-		}
-		if *s.cells[index] == key {
-			return false
-		}
-	}
-	return false
-}
-
-type chainingSet struct {
-	buckets     [][]int
-	comparisons int
-}
-
-func newChainingSet(size int) chainingSet {
-	return chainingSet{buckets: make([][]int, size)}
-}
-
-func (s *chainingSet) insert(key int) bool {
-	index := modulo(key, len(s.buckets))
-	for _, value := range s.buckets[index] {
-		s.comparisons++
-		if value == key {
-			return false
-		}
-	}
-	s.buckets[index] = append(s.buckets[index], key)
-	return true
-}
-
-type cuckooSet struct {
-	first         []*int
-	second        []*int
-	displacements int
-	rebuilds      int
-}
-
-func newCuckooSet(size int) cuckooSet {
-	return cuckooSet{first: make([]*int, size), second: make([]*int, size)}
-}
-
-func firstHash(key int, size int) int {
-	return modulo(key, size)
-}
-
-func secondHash(key int, size int) int {
-	return modulo(key*53+19, size)
-}
-
-func (s *cuckooSet) contains(key int) bool {
-	first := s.first[firstHash(key, len(s.first))]
-	second := s.second[secondHash(key, len(s.second))]
-	return (first != nil && *first == key) || (second != nil && *second == key)
-}
-
-func (s *cuckooSet) place(key int, first []*int, second []*int) bool {
-	current := key
-	useFirst := true
-	for attempt := 0; attempt < len(first)*2; attempt++ {
-		var table []*int
-		var index int
-		if useFirst {
-			table = first
-			index = firstHash(current, len(table))
-		} else {
-			table = second
-			index = secondHash(current, len(table))
-		}
-		if table[index] == nil {
-			value := current
-			table[index] = &value
-			return true
-		}
-		current, *table[index] = *table[index], current
-		s.displacements++
-		useFirst = !useFirst
-	}
-	return false
-}
-
-func (s *cuckooSet) values() []int {
-	result := make([]int, 0)
-	for _, value := range s.first {
-		if value != nil {
-			result = append(result, *value)
-		}
-	}
-	for _, value := range s.second {
-		if value != nil {
-			result = append(result, *value)
-		}
-	}
-	return result
-}
-
-func (s *cuckooSet) rebuild(values []int) {
-	size := len(s.first)*2 + 1
-	for {
-		first := make([]*int, size)
-		second := make([]*int, size)
-		complete := true
-		for _, value := range values {
-			if !s.place(value, first, second) {
-				complete = false
-				break
+		for d := 2; d*d <= n; d++ {
+			if n%d == 0 {
+				return false
 			}
 		}
-		if complete {
-			s.first = first
-			s.second = second
-			s.rebuilds++
-			return
-		}
-		size = size*2 + 1
+		return true
 	}
+	candidate := minCap
+	for !isPrime(candidate) {
+		candidate++
+	}
+	return candidate
 }
 
-func (s *cuckooSet) insert(key int) bool {
-	if s.contains(key) {
-		return false
+type linearHashTable struct {
+	cells  []hashEntry
+	size   int
+	probes int
+}
+
+func newLinearHashTable(capacity int) linearHashTable {
+	if capacity < 2 {
+		capacity = 2
 	}
-	if !s.place(key, s.first, s.second) {
-		values := s.values()
-		values = append(values, key)
-		s.rebuild(values)
+	return linearHashTable{cells: make([]hashEntry, capacity)}
+}
+
+func (t *linearHashTable) insert(key int, value string) bool {
+	cap := len(t.cells)
+	start := modulo(key, cap)
+	firstDeleted := -1
+	for attempt := 0; attempt < cap; attempt++ {
+		index := (start + attempt) % cap
+		t.probes++
+		cell := &t.cells[index]
+		if cell.state == slotEmpty {
+			target := index
+			if firstDeleted != -1 {
+				target = firstDeleted
+			}
+			t.cells[target] = hashEntry{state: slotOccupied, key: key, value: value}
+			t.size++
+			return true
+		}
+		if cell.state == slotDeleted {
+			if firstDeleted == -1 {
+				firstDeleted = index
+			}
+		} else if cell.key == key {
+			cell.value = value
+			return false
+		}
 	}
-	return true
+	if firstDeleted != -1 {
+		t.cells[firstDeleted] = hashEntry{state: slotOccupied, key: key, value: value}
+		t.size++
+		return true
+	}
+	return false
+}
+
+func (t *linearHashTable) find(key int) (string, bool) {
+	cap := len(t.cells)
+	start := modulo(key, cap)
+	for attempt := 0; attempt < cap; attempt++ {
+		index := (start + attempt) % cap
+		t.probes++
+		cell := t.cells[index]
+		if cell.state == slotEmpty {
+			return "", false
+		}
+		if cell.state == slotOccupied && cell.key == key {
+			return cell.value, true
+		}
+	}
+	return "", false
+}
+
+func (t *linearHashTable) remove(key int) bool {
+	cap := len(t.cells)
+	start := modulo(key, cap)
+	for attempt := 0; attempt < cap; attempt++ {
+		index := (start + attempt) % cap
+		t.probes++
+		cell := &t.cells[index]
+		if cell.state == slotEmpty {
+			return false
+		}
+		if cell.state == slotOccupied && cell.key == key {
+			cell.state = slotDeleted
+			cell.value = ""
+			t.size--
+			return true
+		}
+	}
+	return false
+}
+
+type doubleHashTable struct {
+	cells  []hashEntry
+	size   int
+	probes int
+}
+
+func newDoubleHashTable(capacity int) doubleHashTable {
+	if capacity < 3 {
+		capacity = 3
+	}
+	return doubleHashTable{cells: make([]hashEntry, nextPrime(capacity))}
+}
+
+func (t *doubleHashTable) secondHash(key int) int {
+	return 1 + modulo(key*37+17, len(t.cells)-1)
+}
+
+func (t *doubleHashTable) insert(key int, value string) bool {
+	cap := len(t.cells)
+	start := modulo(key, cap)
+	step := t.secondHash(key)
+	firstDeleted := -1
+	for attempt := 0; attempt < cap; attempt++ {
+		index := (start + attempt*step) % cap
+		t.probes++
+		cell := &t.cells[index]
+		if cell.state == slotEmpty {
+			target := index
+			if firstDeleted != -1 {
+				target = firstDeleted
+			}
+			t.cells[target] = hashEntry{state: slotOccupied, key: key, value: value}
+			t.size++
+			return true
+		}
+		if cell.state == slotDeleted {
+			if firstDeleted == -1 {
+				firstDeleted = index
+			}
+		} else if cell.key == key {
+			cell.value = value
+			return false
+		}
+	}
+	if firstDeleted != -1 {
+		t.cells[firstDeleted] = hashEntry{state: slotOccupied, key: key, value: value}
+		t.size++
+		return true
+	}
+	return false
+}
+
+func (t *doubleHashTable) find(key int) (string, bool) {
+	cap := len(t.cells)
+	start := modulo(key, cap)
+	step := t.secondHash(key)
+	for attempt := 0; attempt < cap; attempt++ {
+		index := (start + attempt*step) % cap
+		t.probes++
+		cell := t.cells[index]
+		if cell.state == slotEmpty {
+			return "", false
+		}
+		if cell.state == slotOccupied && cell.key == key {
+			return cell.value, true
+		}
+	}
+	return "", false
+}
+
+func (t *doubleHashTable) remove(key int) bool {
+	cap := len(t.cells)
+	start := modulo(key, cap)
+	step := t.secondHash(key)
+	for attempt := 0; attempt < cap; attempt++ {
+		index := (start + attempt*step) % cap
+		t.probes++
+		cell := &t.cells[index]
+		if cell.state == slotEmpty {
+			return false
+		}
+		if cell.state == slotOccupied && cell.key == key {
+			cell.state = slotDeleted
+			cell.value = ""
+			t.size--
+			return true
+		}
+	}
+	return false
 }
 
 func roman(number int) string {
-	table := map[int]string{1000: "M", 900: "CM", 500: "D", 400: "CD", 100: "C", 90: "XC", 50: "L", 40: "XL", 10: "X", 9: "IX", 5: "V", 4: "IV", 1: "I"}
-	values := []int{1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1}
+	table := newDoubleHashTable(29)
+	entries := []struct {
+		key   int
+		value string
+	}{
+		{1000, "M"}, {900, "CM"}, {500, "D"}, {400, "CD"}, {100, "C"}, {90, "XC"},
+		{50, "L"}, {40, "XL"}, {10, "X"}, {9, "IX"}, {5, "V"}, {4, "IV"}, {1, "I"},
+	}
+	for _, entry := range entries {
+		table.insert(entry.key, entry.value)
+	}
 	result := ""
-	for _, value := range values {
-		for number >= value {
-			result += table[value]
-			number -= value
+	for _, entry := range entries {
+		for number >= entry.key {
+			symbol, _ := table.find(entry.key)
+			result += symbol
+			number -= entry.key
 		}
 	}
 	return result
 }
 
 func runBenchmark(count int, output io.Writer) {
-	tableSize := count*3 + 1
-	linear := newLinearSet(tableSize)
-	doubleHashing := newDoubleHashSet(tableSize)
-	chaining := newChainingSet(tableSize)
-	cuckoo := newCuckooSet(tableSize)
-	start := time.Now()
+	capacity := count + count/3 + 1
+	keys := make([]int, count)
 	for index := 0; index < count; index++ {
-		key := (index * 7919) % (count*2 + 1)
-		linear.insert(key)
-		doubleHashing.insert(key)
-		chaining.insert(key)
-		cuckoo.insert(key)
+		x := uint32(index + 1)
+		x = ((x >> 16) ^ x) * 0x45d9f3b
+		x = ((x >> 16) ^ x) * 0x45d9f3b
+		x = (x >> 16) ^ x
+		keys[index] = int(x & 0x7fffffff)
 	}
+
+	linear := newLinearHashTable(capacity)
+	lStart := time.Now()
+	linear.probes = 0
+	for _, key := range keys {
+		linear.insert(key, "val_"+strconv.Itoa(key))
+	}
+	lInsert := linear.probes
+	linear.probes = 0
+	for _, key := range keys {
+		linear.find(key)
+	}
+	lFind := linear.probes
+	linear.probes = 0
+	for index := 0; index < len(keys); index += 2 {
+		linear.remove(keys[index])
+	}
+	lRemove := linear.probes
+	lUs := time.Since(lStart).Microseconds()
+
+	doubleHashing := newDoubleHashTable(capacity)
+	dStart := time.Now()
+	doubleHashing.probes = 0
+	for _, key := range keys {
+		doubleHashing.insert(key, "val_"+strconv.Itoa(key))
+	}
+	dInsert := doubleHashing.probes
+	doubleHashing.probes = 0
+	for _, key := range keys {
+		doubleHashing.find(key)
+	}
+	dFind := doubleHashing.probes
+	doubleHashing.probes = 0
+	for index := 0; index < len(keys); index += 2 {
+		doubleHashing.remove(keys[index])
+	}
+	dRemove := doubleHashing.probes
+	dUs := time.Since(dStart).Microseconds()
+
 	fmt.Fprintln(output, "Количество ключей:", count)
-	fmt.Fprintln(output, "Линейное опробование, проверок:", linear.probes)
-	fmt.Fprintln(output, "Двойное хеширование, проверок:", doubleHashing.probes)
-	fmt.Fprintln(output, "Метод цепочек, сравнений:", chaining.comparisons)
-	fmt.Fprintln(output, "Хеширование кукушки, вытеснений:", cuckoo.displacements)
-	fmt.Fprintln(output, "Хеширование кукушки, перестроений:", cuckoo.rebuilds)
-	fmt.Fprintln(output, "Время эксперимента, мкс:", time.Since(start).Microseconds())
+	fmt.Fprintf(output, "Линейное опробование (вставка / поиск / удаление, проб): %d / %d / %d, время: %d мкс\n", lInsert, lFind, lRemove, lUs)
+	fmt.Fprintf(output, "Двойное хеширование (вставка / поиск / удаление, проб): %d / %d / %d, время: %d мкс\n", dInsert, dFind, dRemove, dUs)
 }
 
 func task6(input io.Reader, output io.Writer) error {

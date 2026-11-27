@@ -1,4 +1,4 @@
-#include "structures.h"
+#include "ArrayStructure.hpp"
 #include "tasks.h"
 
 #include <iostream>
@@ -16,25 +16,29 @@ int task4() {
         return 1;
     }
 
-    DynamicArray<unsigned char> previous(pattern.size() + 1, 0);
-    DynamicArray<unsigned char> current(pattern.size() + 1, 0);
-    previous[0] = true;
-    for (size_t column = 1; column <= pattern.size(); ++column)
-        previous[column] = previous[column - 1] && pattern[column - 1] == '*';
+    ArrayStructure previous(pattern.size() + 1, "0");
+    ArrayStructure current(pattern.size() + 1, "0");
+    previous.set(0, "1");
+    for (size_t column = 1; column <= pattern.size(); ++column) {
+        const bool ok = previous.get(column - 1) == "1" && pattern[column - 1] == '*';
+        previous.set(column, ok ? "1" : "0");
+    }
 
     for (size_t row = 1; row <= text.size(); ++row) {
-        current.fill(false);
+        current.fill("0");
         for (size_t column = 1; column <= pattern.size(); ++column) {
             const char mask = pattern[column - 1];
+            bool match = false;
             if (mask == '*') {
-                current[column] = current[column - 1] || previous[column];
+                match = current.get(column - 1) == "1" || previous.get(column) == "1";
             } else if (mask == '?' || mask == text[row - 1]) {
-                current[column] = previous[column - 1];
+                match = previous.get(column - 1) == "1";
             }
+            current.set(column, match ? "1" : "0");
         }
         previous = current;
     }
 
-    cout << (previous[pattern.size()] ? "Соответствует" : "Не соответствует") << '\n';
+    cout << (previous.get(pattern.size()) == "1" ? "Соответствует" : "Не соответствует") << '\n';
     return 0;
 }

@@ -26,6 +26,9 @@ expect "$(printf '%s\n%s\n' '1 2 3 4' '3 4 5' | "$root/build/lab2" 3)" $'Объ�
 expect "$(printf '%s\n%s\n' 'meow@stud.nstu.ru' '*@stud.nstu.ru' | "$root/build/lab2" 4)" "Соответствует" "task 4"
 expect "$(printf '%s\n' '7 3 2 1 9 5 4 6 8 0' | "$root/build/lab2" 5)" "YES" "task 5"
 expect "$(printf '%s\n' '3749' | "$root/build/lab2" 6)" "MMMDCCXLIX" "task 6"
+printf '%s\n' 'benchmark 100' | "$root/build/lab2" 6
+printf '%s\n' 'benchmark 100' | "$root/go/lab2-go" 6
+(cd "$root/go" && go test ./...)
 expect "$(printf '%s\n' 'LRU 2 8
 SET 1 2
 SET 2 3
